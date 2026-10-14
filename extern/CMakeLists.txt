@@ -49,7 +49,13 @@ endif()
 
 if(NOT OPENMW_USE_SYSTEM_MYGUI)
 
-    set(MYGUI_RENDERSYSTEM 4 CACHE STRING "")
+    if(NINTENDO_SWITCH)
+        # OpenMW renders MyGUI itself. MyGUI's own OpenGL platform is never built, but selecting it
+        # makes MyGUI's configuration demand GLX.
+        set(MYGUI_RENDERSYSTEM 1 CACHE STRING "")
+    else()
+        set(MYGUI_RENDERSYSTEM 4 CACHE STRING "")
+    endif()
     set(MYGUI_DISABLE_PLUGINS TRUE CACHE BOOL "")
     set(MYGUI_BUILD_DEMOS OFF CACHE BOOL "")
     set(MYGUI_BUILD_PLUGINS OFF CACHE BOOL "")
@@ -127,6 +133,27 @@ if(NOT OPENMW_USE_SYSTEM_OSG)
         endif()
     endif()
 
+    if(NINTENDO_SWITCH)
+        # OpenMW creates the window and the GL context itself through SDL.
+        set(OSG_WINDOWING_SYSTEM "None" CACHE STRING "")
+        set(OSG_TEXT_USE_FONTCONFIG OFF CACHE BOOL "")
+
+        # OpenThreads picks its atomics implementation by running test programs, which is not possible
+        # when cross-compiling. devkitA64 is GCC, so the answer is known.
+        set(_OPENTHREADS_ATOMIC_USE_GCC_BUILTINS 1 CACHE INTERNAL "")
+        set(_OPENTHREADS_ATOMIC_USE_MIPOSPRO_BUILTINS 0 CACHE INTERNAL "")
+        set(_OPENTHREADS_ATOMIC_USE_SUN 0 CACHE INTERNAL "")
+        set(_OPENTHREADS_ATOMIC_USE_WIN32_INTERLOCKED 0 CACHE INTERNAL "")
+        set(_OPENTHREADS_ATOMIC_USE_BSD_ATOMIC 0 CACHE INTERNAL "")
+
+        # Same reasoning as for Windows above: OSG does not specify a language level of its own.
+        set(CMAKE_CXX_STANDARD 11)
+
+        # OSG only builds the pthreads backend of OpenThreads on platforms CMake calls UNIX, which the
+        # devkitPro platform is not, although its C library does provide pthreads. Reset further down.
+        set(UNIX TRUE)
+    endif()
+
     # OSGoS branch 3.6
     include(FetchContent)
     FetchContent_Declare(osg
@@ -135,6 +162,13 @@ if(NOT OPENMW_USE_SYSTEM_OSG)
         SOURCE_DIR fetched/osg
     )
     FetchContent_MakeAvailable(osg)
+
+    if(NINTENDO_SWITCH)
+        unset(UNIX)
+
+        # newlib has no separate 64-bit stat. OSG only knows that about the platforms it lists by name.
+        target_compile_definitions(osgDB PRIVATE stat64=stat)
+    endif()
 
     set(OPENSCENEGRAPH_INCLUDE_DIRS ${osg_SOURCE_DIR}/include ${osg_BINARY_DIR}/include PARENT_SCOPE)
     set(OSG_LIBRARIES OpenThreads osg PARENT_SCOPE)
@@ -182,6 +216,14 @@ if (NOT OPENMW_USE_SYSTEM_SQLITE3)
     if (UNIX)
         target_link_libraries(sqlite3 ${CMAKE_DL_LIBS})
     endif()
+    if (NINTENDO_SWITCH)
+        # No dynamic loading and no memory-mapped files, which also rules out write-ahead logging.
+        target_compile_definitions(sqlite3 PRIVATE
+            SQLITE_OMIT_LOAD_EXTENSION
+            SQLITE_OMIT_WAL
+            SQLITE_MAX_MMAP_SIZE=0
+        )
+    endif()
 
     add_library(SQLite3::SQLite3 ALIAS sqlite3)
 endif()
@@ -225,7 +267,7 @@ if (NOT OPENMW_USE_SYSTEM_YAML_CPP)
     endif()
 endif()
 
-if (NOT OPENMW_USE_SYSTEM_ICU)
+if (NOT OPENMW_USE_SYSTEM_ICU AND NOT NINTENDO_SWITCH) # built in switch/CMakeLists.txt for Switch
     set(ICU_ENV "ICU_DATA_FILTER_FILE=${CMAKE_CURRENT_SOURCE_DIR}/icufilters.json")
     if (ANDROID)
         # Note: Must be a build directory, not an install root, since the configure script

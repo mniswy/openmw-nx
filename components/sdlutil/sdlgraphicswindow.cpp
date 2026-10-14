@@ -6,6 +6,10 @@
 #include "gl4esinit.h"
 #endif
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 namespace SDLUtil
 {
 
@@ -197,6 +201,12 @@ namespace SDLUtil
             return false;
         }
 
+#ifdef __SWITCH__
+        // The thread that takes the context is the one that draws. It is started anew whenever threading
+        // is restarted, and the first thing it does is to come here.
+        Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Main, "draw");
+#endif
+
         return SDL_GL_MakeCurrent(mWindow, mContext) == 0;
     }
 
@@ -250,6 +260,24 @@ namespace SDLUtil
 
         SDL_GL_MakeCurrent(oldWin, oldCtx);
     }
+
+#ifdef __SWITCH__
+    void GraphicsWindowSDL2::setDrawableSize(int width, int height)
+    {
+        SDL_Window* oldWin = SDL_GL_GetCurrentWindow();
+        SDL_GLContext oldCtx = SDL_GL_GetCurrentContext();
+
+        SDL_GL_MakeCurrent(mWindow, mContext);
+
+        // SDL destroys the surface that is drawn to and creates one of the new size, for which it
+        // releases the context this thread holds and takes it again with the new surface.
+        SDL_SetWindowSize(mWindow, width, height);
+        // The swap interval belongs to the surface.
+        setSwapInterval(mVSyncMode);
+
+        SDL_GL_MakeCurrent(oldWin, oldCtx);
+    }
+#endif
 
     void GraphicsWindowSDL2::setSwapInterval(VSyncMode mode)
     {

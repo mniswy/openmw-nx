@@ -76,6 +76,10 @@ if (ANDROID)
     set(CMAKE_FIND_ROOT_PATH ${OPENMW_DEPENDENCIES_DIR} "${CMAKE_FIND_ROOT_PATH}")
 endif()
 
+if (NINTENDO_SWITCH)
+    include(switch/cmake/SwitchPlatform.cmake)
+endif()
+
 # Version
 message(STATUS "Configuring OpenMW...")
 
@@ -305,6 +309,11 @@ set(USED_OSG_PLUGINS
     osgdb_serializers_osg
     osgdb_tga)
 
+if (NINTENDO_SWITCH)
+    # There is no collada-dom for Switch. Morrowind's own data does not use Collada models.
+    list(REMOVE_ITEM USED_OSG_PLUGINS osgdb_dae)
+endif()
+
 if(NOT COLLADA_DOM_VERSION_MAJOR)
     set(COLLADA_DOM_VERSION_MAJOR 2)
 endif()
@@ -485,7 +494,9 @@ endif(HAVE_MULTIVIEW)
 
 set(BOOST_COMPONENTS iostreams program_options)
 
-find_package(Boost 1.70.0 CONFIG REQUIRED COMPONENTS ${BOOST_COMPONENTS} OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS})
+if (NOT NINTENDO_SWITCH) # built in switch/CMakeLists.txt
+    find_package(Boost 1.70.0 CONFIG REQUIRED COMPONENTS ${BOOST_COMPONENTS} OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS})
+endif()
 
 if(OPENMW_USE_SYSTEM_MYGUI)
     find_package(MyGUI 3.4.3 REQUIRED)
@@ -503,7 +514,7 @@ else(USE_LUAJIT)
     find_package(Lua REQUIRED)
     add_compile_definitions(NO_LUAJIT)
 endif(USE_LUAJIT)
-if (NOT WIN32 AND NOT ANDROID)
+if (NOT WIN32 AND NOT ANDROID AND NOT NINTENDO_SWITCH)
     include(cmake/CheckLuaCustomAllocator.cmake)
 endif()
 
@@ -772,6 +783,10 @@ if (WIN32)
 endif()
 
 
+if (NINTENDO_SWITCH AND BUILD_OPENMW)
+    include(switch/cmake/SwitchPackage.cmake)
+endif()
+
 # Core CPACK Setup
 set(CPACK_PACKAGE_VERSION ${OPENMW_VERSION})
 set(CPACK_PACKAGE_VERSION_MAJOR ${OPENMW_VERSION_MAJOR})
@@ -932,6 +947,8 @@ if (OPENMW_OSX_DEPLOYMENT AND APPLE)
     set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/SignMacApplications.cmake)
 
     include(CPack)
+elseif(NINTENDO_SWITCH)
+    # Nothing to install: switch/cmake/SwitchPackage.cmake assembles the SD card folder.
 elseif(NOT APPLE)
     get_generator_is_multi_config(multi_config)
     if (multi_config)

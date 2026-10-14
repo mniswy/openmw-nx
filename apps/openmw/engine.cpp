@@ -2,7 +2,9 @@
 
 #include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <sstream>
 #include <system_error>
 
 #include <osgDB/ReaderWriter>
@@ -13,6 +15,10 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/debug/gldebug.hpp>
+
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
 
 #include <components/misc/rng.hpp>
 #include <components/misc/strings/format.hpp>
@@ -490,8 +496,16 @@ void OMW::Engine::setSkipMenu(bool skipMenu, bool newGame)
 void OMW::Engine::createWindow()
 {
     const int screen = Settings::video().mScreen;
+#ifdef __SWITCH__
+    // Not for the settings to say: the console's own screen has one size, and in the dock it is the
+    // television's. The settings are kept in step, because they are also where the size is looked up.
+    const auto [width, height] = Platform::Switch::getDisplaySize();
+    Settings::video().mResolutionX.set(width);
+    Settings::video().mResolutionY.set(height);
+#else
     const int width = Settings::video().mResolutionX;
     const int height = Settings::video().mResolutionY;
+#endif
     const Settings::WindowMode windowMode = Settings::video().mWindowMode;
     const bool windowBorder = Settings::video().mWindowBorder;
     const SDLUtil::VSyncMode vsync = Settings::video().mVsyncMode;
@@ -506,11 +520,18 @@ void OMW::Engine::createWindow()
         posY = SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen);
     }
 
+#ifdef __SWITCH__
+    // SDL resizes a resizable window by itself when the console is put into its dock or taken out, on
+    // this thread, and with that replaces the surface that another thread is drawing to. The size is
+    // changed by SDLUtil::InputWrapper instead. There is one kind of window, which fills the screen.
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+#else
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (windowMode == Settings::WindowMode::Fullscreen)
         flags |= SDL_WINDOW_FULLSCREEN;
     else if (windowMode == Settings::WindowMode::WindowedFullscreen)
         flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
 
     // Allows for Windows snapping features to properly work in borderless window
     SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
@@ -528,6 +549,15 @@ void OMW::Engine::createWindow()
     checkSDLError(SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24));
     if (Debug::shouldDebugOpenGL())
         checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG));
+
+#ifdef __SWITCH__
+    // SDL creates an OpenGL ES context on Switch unless told otherwise. OpenMW needs desktop OpenGL with
+    // the fixed-function pipeline, which Mesa provides as a 4.3 compatibility profile. This has to be
+    // requested before the window is created, because the EGL config is chosen at that point.
+    checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
+    checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
+    checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
+#endif
 
     if (antialiasing > 0)
     {
@@ -991,6 +1021,37 @@ void OMW::Engine::go()
     osg::ref_ptr<Resource::StatsHandler> resourcesHandler = new Resource::StatsHandler(stats.is_open(), *mVFS);
     mViewer->addEventHandler(resourcesHandler);
 
+#ifdef __SWITCH__
+    Platform::Switch::logSystemInfo();
+
+    // There is no F3 key to bring up the frame rate and the profiler with, so press it this many times.
+    if (const char* presses = std::getenv("OPENMW_SWITCH_SHOW_STATS"))
+    {
+        for (int i = std::atoi(presses); i > 0; --i)
+        {
+            mViewer->getEventQueue()->keyPress(osgGA::GUIEventAdapter::KEY_F3);
+            mViewer->getEventQueue()->keyRelease(osgGA::GUIEventAdapter::KEY_F3);
+        }
+    }
+
+    // The report ends every line with a flush, and a write to the SD card takes far longer than writing a
+    // line should. Collect the reports in memory and write them out in large pieces.
+    std::ostringstream statsBuffer;
+    std::ostream& statsOutput = statsBuffer;
+    const auto writeStats = [&] {
+        const std::string text = std::move(statsBuffer).str();
+        statsBuffer.str({});
+        stats.write(text.data(), static_cast<std::streamsize>(text.size()));
+        stats.flush();
+    };
+    // Nothing is reported while the file stream is in a failed state, which is what a first write to a
+    // file that is not open would otherwise bring about.
+    if (!stats.is_open())
+        stats.setstate(std::ios_base::failbit);
+#else
+    std::ostream& statsOutput = stats;
+#endif
+
     if (stats.is_open())
         Resource::collectStatistics(*mViewer);
 
@@ -1061,12 +1122,21 @@ void OMW::Engine::go()
                 // frames inside a simulation frame.
                 const unsigned currentFrameNumber = mViewer->getFrameStamp()->getFrameNumber();
                 for (unsigned i = frameNumber; i <= currentFrameNumber; ++i)
-                    reportStats(i - statsReportDelay, *mViewer, stats);
+                    reportStats(i - statsReportDelay, *mViewer, statsOutput);
+#ifdef __SWITCH__
+                if (statsBuffer.tellp() > 4 * 1024 * 1024)
+                    writeStats();
+#endif
             }
         }
 
         frameRateLimiter.limit();
     }
+
+#ifdef __SWITCH__
+    if (stats)
+        writeStats();
+#endif
 
     mLuaWorker->join();
 

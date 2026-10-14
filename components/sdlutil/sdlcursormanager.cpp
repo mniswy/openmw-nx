@@ -82,7 +82,7 @@ namespace SDLUtil
     void SDLCursorManager::createCursor(std::string_view name, int rotDegrees, osg::Image* image, Uint8 hotspotX,
         Uint8 hotspotY, int cursorWidth, int cursorHeight)
     {
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(__SWITCH__) // no hardware cursors on these platforms
         _createCursorFromResource(name, rotDegrees, image, hotspotX, hotspotY, cursorWidth, cursorHeight);
 #endif
     }

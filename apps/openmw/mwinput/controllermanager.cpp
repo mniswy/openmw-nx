@@ -36,6 +36,25 @@ namespace MWInput
         , mLeftTriggerGuiPressed(false)
         , mRightTriggerGuiPressed(false)
     {
+#ifdef __SWITCH__
+        // SDL's mapping for the console's controllers goes by where a button is: its "a" is the lower one
+        // of the four, as on an Xbox controller, which is the one marked B here, and likewise for X and Y.
+        // For Nintendo's controllers on other systems SDL goes by what is written on the buttons, and so
+        // do the button prompts. This is SDL's mapping with a and b, x and y exchanged. It comes before
+        // the files below, which can replace it.
+        if (SDL_NumJoysticks() > 0)
+        {
+            char guid[33];
+            SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(0), guid, sizeof(guid));
+            const std::string mapping = std::string(guid)
+                + ",Switch Controller,a:b0,b:b1,back:b11,dpdown:b15,dpleft:b12,dpright:b14,dpup:b13,"
+                  "leftshoulder:b6,leftstick:b4,lefttrigger:b8,leftx:a0,lefty:a1,rightshoulder:b7,rightstick:b5,"
+                  "righttrigger:b9,rightx:a2,righty:a3,start:b10,x:b2,y:b3,";
+            if (SDL_GameControllerAddMapping(mapping.c_str()) < 0)
+                Log(Debug::Error) << "Failed to add the game controller mapping: " << SDL_GetError();
+        }
+#endif
+
         if (!controllerBindingsFile.empty())
         {
             const int result
@@ -496,6 +515,12 @@ namespace MWInput
 
     int ControllerManager::getControllerType()
     {
+#ifdef __SWITCH__
+        // SDL has one name for all of the console's controllers and tells no type from it. Their buttons
+        // are named as those of this one.
+        return SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO;
+#endif
+
         SDL_GameController* cntrl = mBindingsManager->getControllerOrNull();
         if (cntrl)
             return SDL_GameControllerGetType(cntrl);

@@ -4,6 +4,10 @@
 #include <stdio.h>
 #endif
 
+#ifdef __SWITCH__
+#include "switch.hpp"
+#endif
+
 namespace Platform
 {
 
@@ -21,6 +25,9 @@ namespace Platform
     void init()
     {
         increaseFileHandleLimit();
+#ifdef __SWITCH__
+        Switch::init();
+#endif
     }
 
 }

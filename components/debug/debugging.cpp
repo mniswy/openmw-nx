@@ -42,6 +42,10 @@
 
 #include <SDL_messagebox.h>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 namespace Debug
 {
 #ifdef _WIN32
@@ -470,6 +474,9 @@ namespace Debug
                 }
                 CoTaskMemFree(userProfile);
                 Crash::CrashCatcher crashy(argc, argv, dumpDirectory, crashDumpName, freezeDumpName);
+#elif defined(__SWITCH__)
+                // There is no crash catcher for Switch (Atmosphère writes its own crash reports),
+                // and no temporary directory to put a crash log in.
 #else
                 const std::string crashLogName = Misc::StringUtils::lowerCase(appName) + "-crash.log";
                 // install the crash handler as soon as possible.
@@ -482,10 +489,14 @@ namespace Debug
         }
         catch (const std::exception& e)
         {
+#if defined(__SWITCH__)
+            Platform::Switch::showFatalError(std::string(appName) + ": Fatal error", e.what());
+#else
 #if (defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix))
             if (!isatty(fileno(stdin)))
 #endif
                 SDL_ShowSimpleMessageBox(0, (std::string(appName) + ": Fatal error").c_str(), e.what(), nullptr);
+#endif
 
             Log(Debug::Error) << "Fatal error: " << e.what();
 

@@ -11,6 +11,7 @@
 
 #include "engine.hpp"
 #include "options.hpp"
+#include "switchsetup.hpp"
 
 #include <boost/program_options/variables_map.hpp>
 
@@ -212,6 +213,10 @@ namespace
 int runApplication(int argc, char* argv[])
 {
     Platform::init();
+
+#ifdef __SWITCH__
+    OMW::prepareSwitchConfiguration();
+#endif
 
 #ifdef __APPLE__
     setenv("OSG_GL_TEXTURE_STORAGE", "OFF", 0);

@@ -1,0 +1,84 @@
+OpenMW for Nintendo Switch - test build
+=======================================
+
+An unofficial port of OpenMW, the open-source engine for Morrowind, to Switch homebrew. It is not
+made or supported by the OpenMW project, so please send problems to whoever gave you this build and
+not to OpenMW.
+
+
+What you need
+-------------
+
+- A Switch running Atmosphere, with the Homebrew Menu.
+- Your own copy of Morrowind for PC (Steam, GOG or disc). Tribunal and Bloodmoon are optional and are
+  used if they are there. No game files come with this build.
+- Room on the SD card for the game files (roughly 2 GB) and OpenMW (about 100 MB).
+
+
+Installing
+----------
+
+1. Copy the "switch" folder from this zip to the root of the SD card. It goes together with the
+   "switch" folder that is already there, and you end up with "switch/openmw".
+
+2. Copy everything inside Morrowind's "Data Files" folder into "switch/openmw/data", so that the card
+   has "switch/openmw/data/Morrowind.esm". On a PC, "Data Files" is in the Morrowind folder, for
+   example "Steam/steamapps/common/Morrowind/Data Files".
+
+3. Copy "Morrowind.ini" from the Morrowind folder (next to "Data Files") to "switch/openmw".
+
+4. On the Switch, open the Homebrew Menu by HOLDING R WHILE STARTING ANY GAME, and start OpenMW from
+   there. Opening the Homebrew Menu from the Album does not give OpenMW enough memory; it will tell you
+   so if you try.
+
+The first start takes a little longer, because OpenMW sets itself up from Morrowind.ini. If a file is
+missing, it says which one.
+
+If you add Tribunal or Bloodmoon later, delete "switch/openmw/config/openmw.cfg" and the next start sets
+things up again with them.
+
+
+Updating to a newer build
+-------------------------
+
+Copy the "switch" folder from the new zip over the old one. Your saves and settings are kept.
+
+
+Playing
+-------
+
+- Handheld it runs at 1280x720, docked at 1920x1080. You can dock and undock while playing.
+
+- Controls (Options > Controls changes them):
+    Left stick      move                  A        activate, talk, pick up
+    Right stick     look                  B        inventory, back in menus
+    ZR              attack, cast, use     X        ready weapon
+    ZL              jump                  Y        ready magic
+    L               journal               R        rest
+    Click L stick   sneak                 Click R stick   first/third person
+    +               menu (save and load here; there is no quick-save button)
+
+- The default view distance and field of view keep towns at about 60 frames per second. You can raise
+  them if you overclock or do not mind drops below 60: field of view in Options > Video > Video, view
+  distance in Options > Video > Detail Level.
+
+
+Reporting a problem
+-------------------
+
+Send "switch/openmw/config/openmw.log", what you were doing, where in the game, and whether the console
+was docked. The log is replaced every time OpenMW starts, so copy it before you start the game again.
+
+Saves are in "switch/openmw/saves" and settings in "switch/openmw/config".
+
+
+Known issues
+------------
+
+- Short stutters in towns, mostly when the game loads the next area.
+- The on-screen keyboard comes up whenever a text box is selected. It always starts empty, and what you
+  type is added to whatever the text box already holds.
+- Quitting can take a while. Let it finish.
+
+
+OpenMW is free software under the GNU General Public License, version 3; see LICENSE.txt.

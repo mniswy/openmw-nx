@@ -33,6 +33,13 @@ namespace Files
     typedef MacOsPath TargetPathType;
 }
 
+#elif defined(__SWITCH__)
+#include <components/files/switchpath.hpp>
+namespace Files
+{
+    typedef SwitchPath TargetPathType;
+}
+
 #else
 #error "Unknown platform!"
 #endif

@@ -354,7 +354,8 @@ namespace MWRender
 
             primaryFBO->apply(*state);
 
-            state->checkGLErrors("after DepthClearCallback::drawImplementation");
+            if (state->getCheckForGLErrors() != osg::State::NEVER_CHECK_GL_ERRORS)
+                state->checkGLErrors("after DepthClearCallback::drawImplementation");
         }
 
         osg::ref_ptr<osg::Depth> mDepth;

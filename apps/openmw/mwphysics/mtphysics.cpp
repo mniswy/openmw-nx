@@ -19,6 +19,10 @@
 #include <components/misc/barrier.hpp>
 #include <components/settings/values.hpp>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 #include "../mwmechanics/actorutil.hpp"
 #include "../mwmechanics/creaturestats.hpp"
 
@@ -746,6 +750,9 @@ namespace MWPhysics
 
     void PhysicsTaskScheduler::worker()
     {
+#ifdef __SWITCH__
+        Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Worker, "physics");
+#endif
         mWorkersSync->runWorker([this] {
             std::shared_lock lock(mSimulationMutex);
             doSimulation();

@@ -7,6 +7,10 @@
 #include <components/debug/debuglog.hpp>
 #include <components/settings/values.hpp>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 #include <cassert>
 
 namespace MWLua
@@ -73,6 +77,9 @@ namespace MWLua
 
     void Worker::run() noexcept
     {
+#ifdef __SWITCH__
+        Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Worker, "lua");
+#endif
         while (true)
         {
             std::unique_lock<std::mutex> lk(mMutex);

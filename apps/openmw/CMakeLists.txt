@@ -3,6 +3,14 @@ set(OPENMW_SOURCES
     options.cpp
 )
 
+if (NINTENDO_SWITCH)
+    # There is no launcher or wizard on the console, so OpenMW imports Morrowind.ini itself on first start.
+    list(APPEND OPENMW_SOURCES
+        switchsetup.cpp
+        ../mwiniimporter/importer.cpp
+    )
+endif()
+
 set(OPENMW_RESOURCES
     ${CMAKE_SOURCE_DIR}/files/windows/openmw.rc
     ${CMAKE_SOURCE_DIR}/files/windows/openmw.exe.manifest

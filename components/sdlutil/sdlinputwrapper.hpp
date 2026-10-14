@@ -6,6 +6,10 @@
 #include <SDL_events.h>
 #include <SDL_version.h>
 
+#ifdef __SWITCH__
+#include <vector>
+#endif
+
 #include "events.hpp"
 
 namespace osgViewer
@@ -81,6 +85,14 @@ namespace SDLUtil
 
         Uint16 mScaleX;
         Uint16 mScaleY;
+
+#ifdef __SWITCH__
+        /// Text entered on the system's on-screen keyboard, collected by an event watch. See the constructor.
+        std::vector<SDL_TextInputEvent> mPendingTextInput;
+
+        /// Changes the size of the window when the console was put into its dock or taken out of it.
+        void updateWindowSize();
+#endif
     };
 
 }

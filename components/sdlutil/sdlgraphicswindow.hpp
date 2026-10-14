@@ -58,6 +58,11 @@ namespace SDLUtil
         void setSyncToVBlank(bool on) override;
         void setSyncToVBlank(VSyncMode mode);
 
+#ifdef __SWITCH__
+        /** Set the size that is drawn at. As for setSyncToVBlank, no other thread may hold the context. */
+        void setDrawableSize(int width, int height);
+#endif
+
         /** Set Window decoration.*/
         bool setWindowDecorationImplementation(bool flag) override;
 

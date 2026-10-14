@@ -60,6 +60,18 @@ namespace Misc
     }
 }
 
+#elif defined(__SWITCH__)
+
+#include <components/platform/switch.hpp>
+
+namespace Misc
+{
+    void setCurrentThreadIdlePriority()
+    {
+        Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Background);
+    }
+}
+
 #else
 
 namespace Misc

@@ -24,6 +24,10 @@
 
 #include <components/debug/debuglog.hpp>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 #include <components/esm3/esmreader.hpp>
 #include <components/esm3/esmwriter.hpp>
 
@@ -145,6 +149,16 @@ namespace MWGui
                     return nullptr;
             }
         }
+
+#ifdef __SWITCH__
+        // The interface is laid out for the console's own screen. For a television it is drawn as much
+        // larger as the television has more lines, so that it looks the same on both and nothing has to be
+        // arranged anew when the console goes into its dock.
+        float getScalingFactorForHeight(int height)
+        {
+            return Settings::gui().mScalingFactor * height / Platform::Switch::sScreenHeight;
+        }
+#endif
     }
 
     WindowManager::WindowManager(SDL_Window* window, osgViewer::Viewer* viewer, osg::Group* guiRoot,
@@ -210,6 +224,9 @@ namespace MWGui
         SDL_GL_GetDrawableSize(window, &dw, &dh);
 
         mScalingFactor = Settings::gui().mScalingFactor * (dw / w);
+#ifdef __SWITCH__
+        mScalingFactor = getScalingFactorForHeight(dh);
+#endif
         constexpr VFS::Path::NormalizedView resourcePath("mygui");
         mGuiPlatform = std::make_unique<MyGUIPlatform::Platform>(viewer, guiRoot, resourceSystem->getImageManager(),
             resourceSystem->getVFS(), mScalingFactor, resourcePath, logpath / "MyGUI.log");
@@ -222,8 +239,15 @@ namespace MWGui
         MyGUI::LanguageManager::getInstance().eventRequestTag = MyGUI::newDelegate(this, &WindowManager::onRetrieveTag);
 
         // Load fonts
+#ifdef __SWITCH__
+        // At the size for the console's own screen, whichever the game is started on: text is to come out
+        // the same either way, and the fonts are not loaded again when the console goes into its dock.
+        mFontLoader = std::make_unique<Gui::FontLoader>(encoding, resourceSystem->getVFS(),
+            getScalingFactorForHeight(Platform::Switch::sScreenHeight), exportFonts);
+#else
         mFontLoader
             = std::make_unique<Gui::FontLoader>(encoding, resourceSystem->getVFS(), mScalingFactor, exportFonts);
+#endif
 
         // Register own widgets with MyGUI
         MyGUI::FactoryManager::getInstance().registerFactory<MWGui::Widgets::MWSkill>("Widget");
@@ -1218,14 +1242,32 @@ namespace MWGui
         MWBase::Environment::get().getInputManager()->setDragDrop(dragDrop);
     }
 
+#ifdef __SWITCH__
+    namespace
+    {
+        // There are no hardware cursors on Switch, so MyGUI draws the pointer itself.
+        void setSoftwareCursorVisible(bool visible)
+        {
+            if (MyGUI::PointerManager* pointerManager = MyGUI::PointerManager::getInstancePtr())
+                pointerManager->setVisible(visible);
+        }
+    }
+#endif
+
     void WindowManager::setCursorVisible(bool visible)
     {
         mCursorVisible = visible;
+#ifdef __SWITCH__
+        setSoftwareCursorVisible(mCursorVisible && mCursorActive);
+#endif
     }
 
     void WindowManager::setCursorActive(bool active)
     {
         mCursorActive = active;
+#ifdef __SWITCH__
+        setSoftwareCursorVisible(mCursorVisible && mCursorActive);
+#endif
     }
 
     void WindowManager::onRetrieveTag(const MyGUI::UString& tag, MyGUI::UString& result)
@@ -1329,6 +1371,11 @@ namespace MWGui
         }
 
         Settings::Manager::resetPendingChanges(filter);
+
+#ifdef __SWITCH__
+        mScalingFactor = getScalingFactorForHeight(y);
+        mGuiPlatform->getRenderManagerPtr()->setScalingFactor(mScalingFactor);
+#endif
 
         mGuiPlatform->getRenderManagerPtr()->setViewSize(x, y);
 

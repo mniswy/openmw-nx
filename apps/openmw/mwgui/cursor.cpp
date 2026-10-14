@@ -44,8 +44,10 @@ namespace MWGui
 
     void ResourceImageSetPointerFix::setImage(MyGUI::ImageBox* image)
     {
+        // The image sets used for pointers do not specify a size: the image is the whole texture.
+        // Going through setItemResourceInfo would select a zero-sized part of it and draw nothing.
         if (mImageSet != nullptr)
-            image->setItemResourceInfo(mImageSet->getIndexInfo(0, 0));
+            image->setImageTexture(mImageSet->getIndexInfo(0, 0).texture);
     }
 
     void ResourceImageSetPointerFix::setPosition(MyGUI::ImageBox* image, const MyGUI::IntPoint& point)

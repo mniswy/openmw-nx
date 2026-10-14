@@ -399,6 +399,14 @@ namespace MWGui
 
         mWindowModeHint->setVisible(windowMode == Settings::WindowMode::WindowedFullscreen);
 
+#ifdef __SWITCH__
+        // The resolution is that of the console's own screen, or 1920x1080 in the dock, and there is one
+        // kind of window. The list still shows which of the two resolutions it is.
+        mResolutionList->setEnabled(false);
+        mWindowModeList->setEnabled(false);
+        mWindowBorderButton->setEnabled(false);
+#endif
+
         mKeyboardSwitch->setStateSelected(true);
         mControllerSwitch->setStateSelected(false);
 

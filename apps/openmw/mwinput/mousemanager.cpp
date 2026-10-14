@@ -278,7 +278,12 @@ namespace MWInput
 
     void MouseManager::warpMouse()
     {
+#ifdef __SWITCH__
+        // The setting is not all of it here, see WindowManager.
+        float guiUiScale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+#else
         float guiUiScale = Settings::gui().mScalingFactor;
+#endif
         mInputWrapper->warpMouse(
             static_cast<int>(mGuiCursorX * guiUiScale), static_cast<int>(mGuiCursorY * guiUiScale));
     }

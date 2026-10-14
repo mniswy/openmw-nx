@@ -18,6 +18,10 @@
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+#endif
+
 #include "efxpresets.h"
 #include "loudness.hpp"
 #include "openaloutput.hpp"
@@ -349,6 +353,10 @@ namespace MWSound
         // thread entry point
         void run()
         {
+#ifdef __SWITCH__
+            // Decodes the music. It needs little time, but it needs it when the mixer runs out of data.
+            Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Worker, "music");
+#endif
             std::unique_lock<std::mutex> lock(mMutex);
             while (!mQuitNow)
             {

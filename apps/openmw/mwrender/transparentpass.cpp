@@ -138,6 +138,7 @@ namespace MWRender
 
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)
                 : fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
-        state.checkGLErrors("after TransparentDepthBinCallback::drawImplementation");
+        if (state.getCheckForGLErrors() != osg::State::NEVER_CHECK_GL_ERRORS)
+            state.checkGLErrors("after TransparentDepthBinCallback::drawImplementation");
     }
 }

@@ -5,8 +5,26 @@
 
 #include <osgViewer/Viewer>
 
+#ifdef __SWITCH__
+#include <components/platform/switch.hpp>
+
+#include "sdlgraphicswindow.hpp"
+#endif
+
 namespace SDLUtil
 {
+
+#ifdef __SWITCH__
+    namespace
+    {
+        int collectTextInput(void* userdata, SDL_Event* event)
+        {
+            if (event->type == SDL_TEXTINPUT)
+                static_cast<std::vector<SDL_TextInputEvent>*>(userdata)->push_back(event->text);
+            return 0;
+        }
+    }
+#endif
 
     InputWrapper::InputWrapper(SDL_Window* window, osg::ref_ptr<osgViewer::Viewer> viewer, bool grab)
         : mSDLWindow(window)
@@ -37,9 +55,45 @@ namespace SDLUtil
         mWindowHasFocus = (flags & SDL_WINDOW_INPUT_FOCUS);
         mMouseInWindow = (flags & SDL_WINDOW_MOUSE_FOCUS);
         _setWindowScale();
+
+#ifdef __SWITCH__
+        // SDL's on-screen keyboard for Switch posts the entered text during one event pump and stops text
+        // input during the next one, which discards text events that are still in the queue. Events are
+        // pumped more than once per frame here, so the text would never arrive. An event watch sees every
+        // event at the moment it is posted.
+        SDL_AddEventWatch(&collectTextInput, &mPendingTextInput);
+#endif
     }
 
-    InputWrapper::~InputWrapper() = default;
+    InputWrapper::~InputWrapper()
+    {
+#ifdef __SWITCH__
+        SDL_DelEventWatch(&collectTextInput, &mPendingTextInput);
+#endif
+    }
+
+#ifdef __SWITCH__
+    void InputWrapper::updateWindowSize()
+    {
+        const auto [width, height] = Platform::Switch::getDisplaySize();
+        int currentWidth = 0;
+        int currentHeight = 0;
+        SDL_GetWindowSize(mSDLWindow, &currentWidth, &currentHeight);
+        if (currentWidth == width && currentHeight == height)
+            return;
+
+        auto* const window = dynamic_cast<GraphicsWindowSDL2*>(mViewer->getCamera()->getGraphicsContext());
+        if (window == nullptr)
+            return;
+
+        // Changing the size replaces the surface that is drawn to, which takes the OpenGL context. The
+        // thread that draws holds it, so that thread is stopped for the moment, as VideoWrapper does to
+        // change the vertical synchronisation.
+        mViewer->stopThreading();
+        window->setDrawableSize(width, height);
+        mViewer->startThreading();
+    }
+#endif
 
     void InputWrapper::_setWindowScale()
     {
@@ -71,8 +125,22 @@ namespace SDLUtil
             SDL_FlushEvent(SDL_MOUSEMOTION);
             SDL_FlushEvent(SDL_MOUSEWHEEL);
 
+#ifdef __SWITCH__
+            mPendingTextInput.clear();
+#endif
+
             return;
         }
+
+#ifdef __SWITCH__
+        for (const SDL_TextInputEvent& text : mPendingTextInput)
+            mKeyboardListener->textInput(text);
+        mPendingTextInput.clear();
+
+        // Before the events are handled, so that the one this posts is among them and everything that
+        // depends on the size has it by the time the next frame is put together.
+        updateWindowSize();
+#endif
 
         while (SDL_PollEvent(&evt))
         {
@@ -141,7 +209,9 @@ namespace SDLUtil
                 case SDL_TEXTEDITING:
                     break;
                 case SDL_TEXTINPUT:
+#ifndef __SWITCH__ // delivered through mPendingTextInput instead
                     mKeyboardListener->textInput(evt.text);
+#endif
                     break;
                 case SDL_KEYMAPCHANGED:
                     break;
