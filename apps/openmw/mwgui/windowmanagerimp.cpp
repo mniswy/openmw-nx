@@ -151,9 +151,8 @@ namespace MWGui
         }
 
 #ifdef __SWITCH__
-        // The interface is laid out for the console's own screen. For a television it is drawn as much
-        // larger as the television has more lines, so that it looks the same on both and nothing has to be
-        // arranged anew when the console goes into its dock.
+
+		//font scaling for docked mode
         float getScalingFactorForHeight(int height)
         {
             return Settings::gui().mScalingFactor * height / Platform::Switch::sScreenHeight;

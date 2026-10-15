@@ -11,6 +11,8 @@
 #include "sdlgraphicswindow.hpp"
 #endif
 
+//im lazy all this SDL input stuff is slop
+
 namespace SDLUtil
 {
 

@@ -354,7 +354,7 @@ namespace MWSound
         void run()
         {
 #ifdef __SWITCH__
-            // Decodes the music. It needs little time, but it needs it when the mixer runs out of data.
+            // audio crackling fix
             Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Worker, "music");
 #endif
             std::unique_lock<std::mutex> lock(mMutex);

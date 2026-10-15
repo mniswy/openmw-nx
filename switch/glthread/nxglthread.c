@@ -29,6 +29,8 @@
 // Mesa. Compiled here, every member behind the mutex is in a different place than libEGL.a has it. Nothing
 // in this file looks into a display.
 
+// properly threaded multithreading, done by claude. Rewrite sometime
+
 #include "nxglthread.h"
 
 #ifdef NXGLTHREAD_SUPPORTED

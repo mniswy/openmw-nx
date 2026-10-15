@@ -202,8 +202,6 @@ namespace SDLUtil
         }
 
 #ifdef __SWITCH__
-        // The thread that takes the context is the one that draws. It is started anew whenever threading
-        // is restarted, and the first thing it does is to come here.
         Platform::Switch::setCurrentThreadPriority(Platform::Switch::ThreadPriority::Main, "draw");
 #endif
 

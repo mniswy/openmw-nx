@@ -78,8 +78,6 @@ namespace SDLUtil
     void VideoWrapper::setVideoMode(int width, int height, Settings::WindowMode windowMode, bool windowBorder)
     {
 #ifdef __SWITCH__
-        // There is one window, without a border, and its size follows whether the console is in its dock:
-        // see InputWrapper::updateWindowSize, also for why SDL must not be asked for another size here.
         return;
 #endif
 

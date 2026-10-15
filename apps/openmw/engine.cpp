@@ -497,8 +497,6 @@ void OMW::Engine::createWindow()
 {
     const int screen = Settings::video().mScreen;
 #ifdef __SWITCH__
-    // Not for the settings to say: the console's own screen has one size, and in the dock it is the
-    // television's. The settings are kept in step, because they are also where the size is looked up.
     const auto [width, height] = Platform::Switch::getDisplaySize();
     Settings::video().mResolutionX.set(width);
     Settings::video().mResolutionY.set(height);
@@ -521,9 +519,6 @@ void OMW::Engine::createWindow()
     }
 
 #ifdef __SWITCH__
-    // SDL resizes a resizable window by itself when the console is put into its dock or taken out, on
-    // this thread, and with that replaces the surface that another thread is drawing to. The size is
-    // changed by SDLUtil::InputWrapper instead. There is one kind of window, which fills the screen.
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
 #else
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
@@ -551,9 +546,8 @@ void OMW::Engine::createWindow()
         checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG));
 
 #ifdef __SWITCH__
-    // SDL creates an OpenGL ES context on Switch unless told otherwise. OpenMW needs desktop OpenGL with
-    // the fixed-function pipeline, which Mesa provides as a 4.3 compatibility profile. This has to be
-    // requested before the window is created, because the EGL config is chosen at that point.
+	// SDL creates a OpenGL ES context unless told otherwise, OpenMW needs desktop ogl with the old ass fixed function pipeline
+	//which mesa give us as a 4.3 compatibility profile
     checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
     checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
     checkSDLError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));

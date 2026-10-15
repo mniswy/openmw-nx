@@ -1,5 +1,3 @@
-// Included ahead of everything else in each of mimalloc's source files (see ../CMakeLists.txt).
-
 #ifndef OPENMW_SWITCH_NXMALLOC_CONFIG_H
 #define OPENMW_SWITCH_NXMALLOC_CONFIG_H
 
@@ -11,7 +9,7 @@
 static inline uintptr_t nxmallocThreadId(void)
 {
     uintptr_t value;
-    __asm__ volatile("mrs %0, tpidrro_el0" : "=r"(value));
+    __asm__ volatile("mrs %0, tpidrro_el0" : "=r"(value)); //ew
     return value;
 }
 

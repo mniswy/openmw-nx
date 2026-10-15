@@ -1,6 +1,3 @@
-// Fills the gaps between POSIX and what devkitA64's newlib/libnx provide, so that third-party
-// dependencies (OpenSceneGraph, MyGUI, Bullet, SQLite, ...) build without Switch-specific patches.
-
 #include <dlfcn.h>
 
 #include <errno.h>
@@ -15,13 +12,7 @@
 #include <nxglthread.h>
 #include <switch.h>
 
-// ---------------------------------------------------------------------------------------------------------
-// Dynamic loading
-//
-// There are no shared objects. The only symbols anyone looks up at runtime are OpenGL entry points
-// (OpenSceneGraph resolves every GL extension function with dlsym on the program itself), so lookups in
-// the program are answered by EGL.
-
+// I just want a dynamic linker man
 static int sProgramHandle;
 static const char* sError;
 
@@ -60,9 +51,6 @@ char* dlerror(void)
     return (char*)result;
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// sysconf: declared by newlib but not implemented.
-
 long sysconf(int name)
 {
     switch (name)
@@ -83,9 +71,6 @@ long sysconf(int name)
     }
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// File ownership: there are no users on this system. SQLite's POSIX backend refers to both functions.
-
 uid_t geteuid(void)
 {
     return 0;
@@ -99,9 +84,8 @@ int fchown(int fd, uid_t owner, gid_t group)
     return 0;
 }
 
-// ---------------------------------------------------------------------------------------------------------
+//claude fix
 // Thread stack size
-//
 // libnx gives threads created without an explicit size a 128 KiB stack, which is far below what code written
 // for desktop systems assumes (1 MiB on Windows, 8 MiB on Linux). std::thread offers no way to ask for more,
 // so every pthread_create call is routed through here by linking with -Wl,--wrap=pthread_create.
@@ -119,7 +103,7 @@ int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (
     if (attr != NULL)
     {
         adjusted = *attr;
-        // Leave callers that supply their own stack memory alone.
+        //leave callers that supply their own stack memory alone.
         if (pthread_attr_getstack(&adjusted, &stackAddress, &stackSize) != 0 || stackAddress != NULL)
             return __real_pthread_create(thread, attr, start, arg);
     }
@@ -137,14 +121,7 @@ int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (
     return result;
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// SDL thread priorities
-//
-// devkitPro's SDL raises a thread only for SDL_THREAD_PRIORITY_HIGH. Every other request, including the
-// SDL_THREAD_PRIORITY_TIME_CRITICAL that its audio thread makes, puts the thread at the lowest priority,
-// where the audio mixer waits for its turn behind background work and the sound breaks up. Linked with
-// -Wl,--wrap=SDL_SYS_SetThreadPriority.
-
+//SDL thread priority stuff
 #define NXCOMPAT_SDL_THREAD_PRIORITY_HIGH 2
 #define NXCOMPAT_SDL_THREAD_PRIORITY_TIME_CRITICAL 3
 
@@ -156,13 +133,6 @@ int __wrap_SDL_SYS_SetThreadPriority(int priority)
         priority = NXCOMPAT_SDL_THREAD_PRIORITY_HIGH;
     return __real_SDL_SYS_SetThreadPriority(priority);
 }
-
-// ---------------------------------------------------------------------------------------------------------
-// rename
-//
-// POSIX has rename replace a file that is already at the destination, which is how programs save a file
-// without ever leaving a half-written one: write a new file, rename it over the old one. The SD card's
-// file system refuses instead. Linked with -Wl,--wrap=rename.
 
 int __real_rename(const char* from, const char* to);
 

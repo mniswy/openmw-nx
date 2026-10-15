@@ -29,7 +29,7 @@ namespace Platform::Switch
     {
         std::filesystem::path findApplicationDirectory()
         {
-            // The working directory is where the .nro is, spelled with a device name: "sdmc:/switch/openmw".
+            // the working directory is where the .nro is, spelled with a device name: "sdmc:/switch/openmw".
             std::error_code ec;
             std::string directory = std::filesystem::current_path(ec).string();
             if (!ec)
@@ -43,7 +43,7 @@ namespace Platform::Switch
                         return result;
                 }
             }
-            // Started from somewhere else, for example sent over the network with nxlink.
+            // started from somewhere else
             return "/switch/openmw";
         }
 
@@ -67,7 +67,6 @@ namespace Platform::Switch
 
         constexpr s32 sLowestThreadPriority = 0x3B;
 
-        // What the homebrew loader gives the main thread, replaced by the actual value in init.
         s32 sMainThreadPriority = 0x2C;
 
         bool sOpenGLThread = false;
@@ -93,7 +92,7 @@ namespace Platform::Switch
             std::atexit(socketExit);
         }
 
-        // The homebrew menu opened from the album runs as an applet with a few hundred MiB of memory.
+		//idk if this even works
         const AppletType type = appletGetAppletType();
         if (type != AppletType_Application && type != AppletType_SystemApplication)
             throw std::runtime_error(
@@ -102,7 +101,6 @@ namespace Platform::Switch
 
         svcGetThreadPriority(&sMainThreadPriority, CUR_THREAD_HANDLE);
 
-        // Before the defaults below, so that the file can replace them.
         loadEnvironmentFile(getApplicationDirectory() / "environment.txt");
 
         Profiler::start();
@@ -118,8 +116,7 @@ namespace Platform::Switch
         // does not know how to count them here. There are three cores, so ask for what it does on desktops.
         setenv("OSG_THREADING", "DrawThreadPerContext", 0);
 
-        // Asking OpenGL whether an error has occurred means waiting until Mesa's thread (below) has run
-        // every call made so far. OpenSceneGraph asks twice per frame unless told not to.
+		//a lil bit more performance
         setenv("OSG_GL_ERROR_CHECKING", "OFF", 0);
 
         // Half the time of the thread that draws goes into Mesa. With this, Mesa does its part on a
@@ -134,7 +131,7 @@ namespace Platform::Switch
 
     std::pair<int, int> getDisplaySize()
     {
-        // As of the last time the system's messages were read, which SDL does whenever it looks for events.
+        // as of the last time the systems messages were read which SDL does whenever it looks for events
         if (appletGetOperationMode() == AppletOperationMode_Handheld)
             return { 1280, sScreenHeight };
         return { 1920, 1080 };

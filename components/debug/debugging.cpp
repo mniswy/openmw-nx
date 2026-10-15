@@ -475,8 +475,7 @@ namespace Debug
                 CoTaskMemFree(userProfile);
                 Crash::CrashCatcher crashy(argc, argv, dumpDirectory, crashDumpName, freezeDumpName);
 #elif defined(__SWITCH__)
-                // There is no crash catcher for Switch (Atmosphère writes its own crash reports),
-                // and no temporary directory to put a crash log in.
+                // no crash catcher for switch
 #else
                 const std::string crashLogName = Misc::StringUtils::lowerCase(appName) + "-crash.log";
                 // install the crash handler as soon as possible.

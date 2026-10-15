@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+claude bs for profileing
 Reads a profile written by OpenMW on Nintendo Switch (OPENMW_SWITCH_PROFILE, see README.md) and prints
 where each sampled thread spent its time.
 

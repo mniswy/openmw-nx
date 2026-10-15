@@ -13,6 +13,8 @@
 //
 // This file is only part of a build with OPENMW_SWITCH_PGO=GENERATE, and is not itself counted.
 
+//this is done by claude, was a pretty nice optimisation. got rid of a lot of the stutters
+
 #include "nxpgo.h"
 
 #include <gcov.h>

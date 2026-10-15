@@ -1,6 +1,3 @@
-// Minimal <dlfcn.h> for Nintendo Switch, where there is no dynamic loader.
-// It exists so that third-party code written for POSIX compiles unmodified; see nxcompat.c.
-
 #ifndef OPENMW_SWITCH_COMPAT_DLFCN_H
 #define OPENMW_SWITCH_COMPAT_DLFCN_H
 

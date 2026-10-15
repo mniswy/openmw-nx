@@ -58,7 +58,6 @@ namespace OMW
 
         MwIniImporter::multistrmap ini = importer.loadIniFile(iniFile);
 
-        // Morrowind's bitmap fonts are opt-in on the other platforms as well.
         ini.erase("Fonts:Font 0");
         ini.erase("Fonts:Font 1");
         ini.erase("Fonts:Font 2");

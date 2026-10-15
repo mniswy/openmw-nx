@@ -1,15 +1,4 @@
-// The C library's memory allocation functions, done by mimalloc.
-//
-// newlib's allocator has one lock for everything, taken for every allocation and every release. OpenMW
-// allocates from five or six threads at once, and measured on the console the main thread spent between
-// a third and half of its time in the allocator, much of that waiting for the lock. mimalloc gives each
-// thread memory of its own to allocate from.
-//
-// A program replaces the allocator by defining its functions: the linker then has no reason to take
-// them from the C library. That goes for the names the C library uses internally as well (_malloc_r and
-// so on, which take the calling thread's reentrancy structure), or memory from one allocator would end
-// up being released to the other. If the C library's allocator does get linked in for some function
-// missing here, the link fails with a duplicate definition, which is the time to add the function.
+// this is another optimisation, just swapping the memory allocator out for mimalloc. Suprisingly boosts performance a lot
 
 #include <malloc.h>
 #include <reent.h>
@@ -115,7 +104,6 @@ size_t _malloc_usable_size_r(struct _reent* reent, void* pointer)
     return mi_usable_size(pointer);
 }
 
-// In the C library this shares a source file with _free_r.
 int _malloc_trim_r(struct _reent* reent, size_t pad)
 {
     (void)reent;
