@@ -3,6 +3,10 @@ name: Build Switch NRO (GBK)
 on:
   workflow_dispatch:
 
+env:
+  DEVKITPRO: /opt/devkitpro
+  DEVKITA64: /opt/devkitpro/devkitA64
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,26 +21,36 @@ jobs:
 
       - name: Toolchain
         run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          ls "$DEVKITPRO" || true
+          which aarch64-none-elf-gcc || ls "$DEVKITA64/bin" | head -20
           aarch64-none-elf-gcc --version
-          echo "DEVKITPRO=$DEVKITPRO"
 
       - name: Host tools
         run: |
-          apt-get update
-          apt-get install -y cmake ninja-build python3 python3-pip git curl unzip zip
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          if command -v pacman >/dev/null 2>&1; then
+            pacman -Sy --noconfirm --needed base-devel cmake ninja python python-pip git unzip zip
+          elif command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y cmake ninja-build python3 python3-pip git curl unzip zip
+          fi
 
       - name: Generate GBK table
         run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
           python3 patch/gen_gbk_table.py components/toutf8/gbk_table.h
           wc -c components/toutf8/gbk_table.h
 
       - name: Apply GBK patch
         run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
           python3 patch/apply_gbk_patch.py
           git diff --stat
 
       - name: Build
         run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
           chmod +x switch/build.sh
           ./switch/build.sh 2>&1 | tee build.log
 
