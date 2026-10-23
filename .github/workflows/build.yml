@@ -39,14 +39,19 @@ jobs:
       - name: Generate GBK table
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
-          python3 patch/gen_gbk_table.py components/toutf8/gbk_table.h
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY --version
+          $PY patch/gen_gbk_table.py components/toutf8/gbk_table.h
           wc -c components/toutf8/gbk_table.h
 
       - name: Apply GBK patch
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
-          python3 patch/apply_gbk_patch.py
-          git diff --stat
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY patch/apply_gbk_patch.py
+          echo "--- GBK markers in toutf8.cpp ---"
+          grep -c "GBK" components/toutf8/toutf8.cpp
+          ls -l components/toutf8/
 
       - name: Build
         run: |
