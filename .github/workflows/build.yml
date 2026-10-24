@@ -59,6 +59,13 @@ jobs:
           PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
           $PY patch/apply_debug_topics.py || echo "debug patch skipped"
 
+      - name: Apply CJK topic matching fix
+        run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY patch/apply_topic_match_patch.py
+          grep -n "0xe0" apps/openmw/mwdialogue/keywordsearch.cpp
+
       - name: Build
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
