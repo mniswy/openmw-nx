@@ -53,6 +53,12 @@ jobs:
           grep -c "GBK" components/toutf8/toutf8.cpp
           ls -l components/toutf8/
 
+      - name: Apply topic debug logging
+        run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY patch/apply_debug_topics.py || echo "debug patch skipped"
+
       - name: Build
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
