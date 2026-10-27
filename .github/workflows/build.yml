@@ -66,6 +66,13 @@ jobs:
           $PY patch/apply_topic_match_patch.py
           grep -n "0xe0" apps/openmw/mwdialogue/keywordsearch.cpp
 
+      - name: Apply CJK line wrapping fix
+        run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY patch/apply_cjk_wrap.py
+          grep -n "ucsCJK" apps/openmw/mwgui/bookpage.cpp | head -5
+
       - name: Build
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
