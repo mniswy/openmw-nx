@@ -73,7 +73,7 @@ namespace
 """
 
 INSERT = """        {
-            const MWWorld::CellStore* cellStore = cell;
+            const MWWorld::CellStore* cellStore = %(param)s;
             if (cellStore != nullptr && cellStore->getCell() != nullptr)
             {
                 const std::string translated = translatedCellName(cellStore->getCell()->mName);
@@ -109,17 +109,39 @@ def main():
         raise SystemExit("namespace MWWorld not found")
     t = t[:m.start()] + HELPER + t[m.start():]
 
-    # World::getCellName definition - only the signature is needed
-    pattern = re.compile(
-        r"(^[ \t]*std::string World::getCellName[ \t]*\([^)]*\)[^\n{]*\n[ \t]*\{\n)",
-        re.M)
+    # Find World::getCellName and insert the lookup right after its opening
+    # brace. The definition is matched loosely on purpose: the return type may
+    # be std::string or a reference, so anything starting with "World::" and
+    # calling getCellName( counts.
+    matches = list(re.finditer(r"World::getCellName[ \t]*\(", t))
+    if not matches:
+        raise SystemExit("World::getCellName not found in worldimp.cpp")
 
-    matches = list(pattern.finditer(t))
-    if len(matches) != 1:
-        raise SystemExit("World::getCellName definition not found (%d hits)" % len(matches))
+    inserted = 0
+    skipped = 0
+    param = "cell"
+    for m in reversed(matches):
+        close = t.find(")", m.end())
+        if close < 0:
+            continue
+        params = t[m.end():close]
+        # only the overload that takes a CellStore: another overload may take
+        # an ESM::Cell and our snippet would not compile there
+        if "CellStore" not in params:
+            skipped += 1
+            continue
 
-    m = matches[0]
-    t = t[:m.end()] + INSERT + t[m.end():]
+        names = re.findall(r"[A-Za-z_]\w*", params)
+        param = names[-1] if names else "cell"
+
+        brace = t.find("{", close)
+        if brace < 0:
+            continue
+        t = t[:brace + 1] + "\n" + (INSERT % {"param": param}) + t[brace + 1:]
+        inserted += 1
+
+    print("getCellName definitions patched: %d, skipped: %d (param=%s)"
+          % (inserted, skipped, param))
 
     # includes
     for inc in ("<fstream>", "<unordered_map>"):
