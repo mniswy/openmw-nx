@@ -80,6 +80,13 @@ jobs:
           $PY patch/apply_cjk_msgbox.py
           grep -n "wrapCJKText" apps/openmw/mwgui/messagebox.cpp | head -5
 
+      - name: Apply Chinese cell names
+        run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          $PY patch/apply_cellname.py
+          grep -n "translatedCellName" apps/openmw/mwworld/worldimp.cpp | head -5
+
       - name: Build
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
