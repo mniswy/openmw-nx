@@ -65,7 +65,7 @@ namespace
 """
 
 CALL = ("%(ind)s%(w)s->setCaptionWithReplacing(wrapCJKText(%(arg)s, std::max(10,\n"
-        "%(ind)s    (%(w)s->getWidth() - 12) / std::max(8, Settings::gui().mFontSize))));")
+        "%(ind)s    (%(w)s->getWidth() - 12) / std::max(8, Settings::gui().mFontSize.get()))));")
 
 
 def read(p):
