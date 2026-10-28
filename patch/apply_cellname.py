@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Translate cell display names through cellname.txt.
+
+The Chinese Morrowind package ships a table of English -> Chinese cell names
+(the "Morrowind.cel" / "cellname.txt" of the PC build). Vanilla Morrowind and
+upstream OpenMW never look at it; the Chinese build has a private patch.
+
+This patch makes the display path use it: World::getCellName() is the single
+function the map, the loading screens and the travel (boat / silt strider)
+lists go through, so translating there renames everything without touching
+cell identity, ids or saved games.
+
+The table is read once, lazily, from "cellname.txt" in the working directory
+(sdmc:/switch/openmw/cellname.txt on the Switch).
+"""
+import io
+import os
+import re
+
+ROOT = os.getcwd()
+CPP = os.path.join(ROOT, "apps", "openmw", "mwworld", "worldimp.cpp")
+
+HELPER = r"""
+namespace
+{
+    // English -> Chinese cell names, read once from cellname.txt
+    const std::unordered_map<std::string, std::string>& cellNameTable()
+    {
+        static const std::unordered_map<std::string, std::string> table = []() {
+            std::unordered_map<std::string, std::string> result;
+
+            std::ifstream in("cellname.txt");
+            if (!in.is_open())
+                return result;
+
+            std::string line;
+            std::string pending;
+            while (std::getline(in, line))
+            {
+                if (!line.empty() && line.back() == '\r')
+                    line.pop_back();
+                if (line.empty())
+                {
+                    pending.clear();
+                    continue;
+                }
+                if (line[0] == '>')
+                    pending = line.substr(1);
+                else if (line[0] == '=' && !pending.empty())
+                {
+                    result[pending] = line.substr(1);
+                    pending.clear();
+                }
+            }
+            return result;
+        }();
+        return table;
+    }
+
+    std::string translatedCellName(const std::string& name)
+    {
+        if (name.empty())
+            return std::string();
+
+        const std::unordered_map<std::string, std::string>& table = cellNameTable();
+        const auto it = table.find(name);
+        if (it == table.end())
+            return std::string();
+        return it->second;
+    }
+}
+
+"""
+
+INSERT = """        {
+            const MWWorld::CellStore* cellStore = cell;
+            if (cellStore != nullptr && cellStore->getCell() != nullptr)
+            {
+                const std::string translated = translatedCellName(cellStore->getCell()->mName);
+                if (!translated.empty())
+                    return translated;
+            }
+        }
+"""
+
+
+def read(p):
+    with io.open(p, "r", encoding="utf-8", newline="") as f:
+        return f.read()
+
+
+def write(p, t):
+    with io.open(p, "w", encoding="utf-8", newline="") as f:
+        f.write(t)
+
+
+def main():
+    if not os.path.exists(CPP):
+        raise SystemExit("not found: %s (run from the repo root)" % CPP)
+
+    t = read(CPP)
+    if "translatedCellName" in t:
+        print("already patched")
+        return
+
+    # helper before the first MWWorld namespace
+    m = re.search(r"^namespace MWWorld\s*$", t, re.M)
+    if not m:
+        raise SystemExit("namespace MWWorld not found")
+    t = t[:m.start()] + HELPER + t[m.start():]
+
+    # World::getCellName definition - only the signature is needed
+    pattern = re.compile(
+        r"(^[ \t]*std::string World::getCellName[ \t]*\([^)]*\)[^\n{]*\n[ \t]*\{\n)",
+        re.M)
+
+    matches = list(pattern.finditer(t))
+    if len(matches) != 1:
+        raise SystemExit("World::getCellName definition not found (%d hits)" % len(matches))
+
+    m = matches[0]
+    t = t[:m.end()] + INSERT + t[m.end():]
+
+    # includes
+    for inc in ("<fstream>", "<unordered_map>"):
+        if inc not in t:
+            anchor = '#include "worldimp.hpp"'
+            if anchor not in t:
+                raise SystemExit("include anchor not found")
+            t = t.replace(anchor, anchor + "\n\n#include " + inc, 1)
+
+    write(CPP, t)
+    print("patched:", CPP)
+
+
+if __name__ == "__main__":
+    main()
