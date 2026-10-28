@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Make OpenMW's book / dialogue text wrap inside Chinese text.
+"""Wrap Chinese text inside OpenMW's book / dialogue pages.
 
 bookpage.cpp splits text into "words" separated by breaking spaces and only
-breaks a line between words. Chinese has no spaces, so a whole paragraph is a
-single word and it runs off the right edge of the page.
+breaks a line between words. Chinese has no spaces, so a paragraph is a single
+giant word that runs off the page.
 
-This patch treats every CJK character as a word of its own, so the existing
-wrap logic in add_partial_text() can break the line after any character.
+This patch makes two changes:
+
+  1. writeImpl: a CJK character ends the current word, so the wrapper sees one
+     "word" per character. It does NOT flush here: flushing per character
+     creates a paragraph break and ruins the line spacing.
+  2. add_partial_text: while appending the pieces of a word, start a new line
+     as soon as the next character no longer fits.
+
+The second change only splits words that are too wide for a line, which
+applies to CJK and leaves normal latin text alone.
 """
 import io
 import os
@@ -56,7 +64,8 @@ NEW_WORD_LOOP = """                Utf8Stream::UnicodeChar lastChar = 0;
                         wordWidth += static_cast<int>(info->advance + info->bearingX);
                     stream.consume();
 
-                    // a CJK character ends the current word: lines may break after it
+                    // a CJK character ends the current word: the wrapper may
+                    // break the line after it
                     if (ucsCJK(lastChar))
                         break;
                 }
@@ -69,12 +78,24 @@ NEW_WORD_LOOP = """                Utf8Stream::UnicodeChar lastChar = 0;
                 if (lead != origin)
                     mPartialWhitespace.emplace_back(style, lead, origin, spaceWidth);
                 if (origin != extent)
-                    mPartialWord.emplace_back(style, origin, extent, wordWidth);
+                    mPartialWord.emplace_back(style, origin, extent, wordWidth);"""
 
-                // flush early so the wrapper can put the line break between
-                // two CJK characters instead of past the page edge
-                if (ucsCJK(lastChar))
-                    add_partial_text();"""
+OLD_APPEND = """            for (const PartialText& partialText : mPartialWord)
+            {
+                int top = mLine ? mLine->mRect.top : mBook->mRect.bottom;"""
+
+NEW_APPEND = """            for (const PartialText& partialText : mPartialWord)
+            {
+                // a word that does not fit is split here instead of being
+                // pushed to the next line whole (this is what makes CJK wrap)
+                if (mLine && left + partialText.mWidth > mPageWidth)
+                {
+                    mLine = nullptr;
+                    mRun = nullptr;
+                    left = 0;
+                }
+
+                int top = mLine ? mLine->mRect.top : mBook->mRect.bottom;"""
 
 
 def read(p):
@@ -92,12 +113,10 @@ def main():
         raise SystemExit("not found: %s (run from the repo root)" % CPP)
 
     t = read(CPP)
-
-    if "bool ucsCJK(" in t:
+    if "ucsCJK" in t:
         print("already patched")
         return
 
-    # 1) helper next to the other ucs* predicates (end of the anonymous namespace)
     anchor = """            case 0x3000: // IDEOGRAPHIC SPACE
                 return true;
             default:
@@ -109,10 +128,13 @@ def main():
         raise SystemExit("ucsBreakingSpace anchor not found (%d)" % t.count(anchor))
     t = t.replace(anchor, anchor[:-2] + HELPER + "}", 1)
 
-    # 2) the word scanner
     if t.count(OLD_WORD_LOOP) != 1:
         raise SystemExit("word loop anchor not found (%d)" % t.count(OLD_WORD_LOOP))
     t = t.replace(OLD_WORD_LOOP, NEW_WORD_LOOP, 1)
+
+    if t.count(OLD_APPEND) != 1:
+        raise SystemExit("append loop anchor not found (%d)" % t.count(OLD_APPEND))
+    t = t.replace(OLD_APPEND, NEW_APPEND, 1)
 
     write(CPP, t)
     print("patched:", CPP)
