@@ -74,11 +74,16 @@ namespace
 
 INSERT = """        {
             const MWWorld::CellStore* cellStore = %(param)s;
-            if (cellStore != nullptr && cellStore->getCell() != nullptr)
+            if (cellStore != nullptr)
             {
-                const std::string translated = translatedCellName(cellStore->getCell()->mName);
-                if (!translated.empty())
-                    return translated;
+                const MWWorld::Cell* worldCell = cellStore->getCell();
+                if (worldCell != nullptr)
+                {
+                    const std::string translated
+                        = translatedCellName(std::string(worldCell->getDisplayName()));
+                    if (!translated.empty())
+                        return translated;
+                }
             }
         }
 """
