@@ -84,7 +84,9 @@ jobs:
         run: |
           export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
           chmod +x switch/build.sh
+          set -o pipefail
           ./switch/build.sh 2>&1 | tee build.log
+          test -f build-switch/openmw.nro || { echo "::error::build produced no openmw.nro"; exit 1; }
 
       - name: Upload artifact
         if: always()
